@@ -1,114 +1,126 @@
-// Ambil elemen dari HTML
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+const canvass = document.getElementById('gamecanvas');
+const ctx = canvass.getContext('2d');
 const scoreElement = document.getElementById('score');
-const gameOverElement = document.getElementById('gameOver');
+const gameoverElement = document.getElementById('gameover');
 
-// Ukuran grid dan area permainan
 const gridSize = 20;
-const gridWidth = canvas.width / gridSize;
-const gridHeight = canvas.height / gridSize;
+const gridwidth = canvass.width / gridSize;
+const gridheight = canvass.height / gridSize;
 
-// Data awal
-let snake = [{ x: Math.floor(gridWidth / 2), y: Math.floor(gridHeight / 2) }];
+let snake = [{ x: Math.floor(gridwidth / 2), y: Math.floor(gridheight / 2) }];
 let food = { x: 5, y: 5 };
-let direction = 'right';
+let direction = 'RIGHT';
 let score = 0;
 let gameRunning = true;
 
-// Fungsi menggambar ke canvas
-function draw() {
-  // Bersihkan layar
-  ctx.fillStyle = 'black';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+// Mulai musik latar otomatis saat game dimulai
+// 🎵 Tambahkan suara (gunakan .wav yang sudah dibuat)
+const eatSound = new Audio("assets/audio/eat.wav");
+const gameOverSound = new Audio("assets/audio/gameover.wav");
+const bgMusic = new Audio("assets/audio/bgmusic_loop.wav");
+bgMusic.loop = true;
+bgMusic.volume = 0.35;
 
-  // Gambar ular
-  ctx.fillStyle = 'green';
+// Mulai musik latar otomatis saat game dimulai (beberapa browser butuh interaksi)
+bgMusic.play().catch(() => {
+  document.addEventListener('click', () => bgMusic.play(), { once: true });
+});
+
+// saat makan:
+eatSound.currentTime = 0;
+eatSound.play();
+
+// saat game over:
+gameOverSound.currentTime = 0;
+gameOverSound.play();
+bgMusic.pause();
+
+
+// Gambar ular & makanan
+function draw() {
+  ctx.fillStyle = "rgba(0,0,0,0.4)";
+  ctx.fillRect(0, 0, canvass.width, canvass.height);
+
+  ctx.fillStyle = '#00ff66';
   snake.forEach(segment => {
     ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
   });
 
-  // Gambar makanan
-  ctx.fillStyle = 'red';
+  ctx.fillStyle = '#ff3300';
   ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize, gridSize);
 }
 
-// Fungsi update posisi ular dan logika game
+// Logika permainan
 function update() {
   if (!gameRunning) return;
 
   const head = { ...snake[0] };
+  if (direction === 'UP') head.y--;
+  if (direction === 'DOWN') head.y++;
+  if (direction === 'LEFT') head.x--;
+  if (direction === 'RIGHT') head.x++;
 
-  if (direction === 'up') head.y--;
-  if (direction === 'down') head.y++;
-  if (direction === 'left') head.x--;
-  if (direction === 'right') head.x++;
-
-  // Jika menabrak dinding → game over
-  if (head.x < 0 || head.x >= gridWidth || head.y < 0 || head.y >= gridHeight) {
+  if (head.x < 0 || head.x >= gridwidth || head.y < 0 || head.y >= gridheight) {
     endGame();
     return;
   }
 
-  // Jika menabrak badan sendiri → game over
-  for (let segment of snake) {
-    if (segment.x === head.x && segment.y === head.y) {
-      endGame();
-      return;
-    }
+  if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+    endGame();
+    return;
   }
 
   snake.unshift(head);
 
-  // Jika makan makanan
+  // 🍎 Cek apakah makan
   if (head.x === food.x && head.y === food.y) {
-    score += 10;
+    score += 100;
     scoreElement.textContent = score;
+    eatSound.currentTime = 0;
+    eatSound.play();
     generateFood();
   } else {
-    snake.pop(); // hapus ekor
+    snake.pop();
   }
 }
 
-// Fungsi membuat makanan baru di posisi acak
 function generateFood() {
   food = {
-    x: Math.floor(Math.random() * gridWidth),
-    y: Math.floor(Math.random() * gridHeight),
+    x: Math.floor(Math.random() * gridwidth),
+    y: Math.floor(Math.random() * gridheight)
   };
 }
 
-// Fungsi akhir permainan
 function endGame() {
   gameRunning = false;
-  gameOverElement.style.display = 'block';
+  gameoverElement.style.display = 'block';
+  gameOverSound.play();
+  bgMusic.pause();
 }
 
-// Fungsi reset game
-function resetGame() {
-  snake = [{ x: Math.floor(gridWidth / 2), y: Math.floor(gridHeight / 2) }];
-  direction = 'right';
-  score = 0;
-  scoreElement.textContent = score;
-  gameRunning = true;
-  gameOverElement.style.display = 'none';
-  generateFood();
-}
-
-// Fungsi utama loop game
-function gameLoop() {
+function gameloop() {
   update();
   draw();
 }
 
-// Kontrol arah ular
+function restartGame() {
+  snake = [{ x: Math.floor(gridwidth / 2), y: Math.floor(gridheight / 2) }];
+  direction = 'RIGHT';
+  score = 0;
+  scoreElement.textContent = score;
+  gameRunning = true;
+  gameoverElement.style.display = 'none';
+  generateFood();
+  draw();
+  bgMusic.play();
+}
+
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowUp' && direction !== 'down') direction = 'up';
-  if (e.key === 'ArrowDown' && direction !== 'up') direction = 'down';
-  if (e.key === 'ArrowLeft' && direction !== 'right') direction = 'left';
-  if (e.key === 'ArrowRight' && direction !== 'left') direction = 'right';
+  if (e.key === 'ArrowUp' && direction !== 'DOWN') direction = 'UP';
+  if (e.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
+  if (e.key === 'ArrowLeft' && direction !== 'RIGHT') direction = 'LEFT';
+  if (e.key === 'ArrowRight' && direction !== 'LEFT') direction = 'RIGHT';
 });
 
-// Jalankan game
-resetGame();
-setInterval(gameLoop, 200);
+restartGame();
+setInterval(gameloop, 150);
